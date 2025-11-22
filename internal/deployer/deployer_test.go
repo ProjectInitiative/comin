@@ -21,7 +21,10 @@ func TestDeployerBasic(t *testing.T) {
 	tmp := t.TempDir()
 	s, err := store.New(tmp+"/state.json", tmp+"/gcroots", 1, 1)
 	assert.Nil(t, err)
-	d := deployer.New(s, deployFunc, nil, "", "")
+	d := deployer.New(&deployer.DeployerArgs{
+		Store:      s,
+		DeployFunc: deployFunc,
+	})
 	d.Run()
 	assert.False(t, d.IsDeploying())
 
@@ -54,7 +57,10 @@ func TestDeployerSubmit(t *testing.T) {
 	tmp := t.TempDir()
 	s, err := store.New(tmp+"/state.json", tmp+"/gcroots", 1, 1)
 	assert.Nil(t, err)
-	d := deployer.New(s, deployFunc, nil, "", "")
+	d := deployer.New(&deployer.DeployerArgs{
+		Store:      s,
+		DeployFunc: deployFunc,
+	})
 	d.Run()
 	assert.False(t, d.IsDeploying())
 
@@ -94,7 +100,10 @@ func TestDeployerSuspend(t *testing.T) {
 	tmp := t.TempDir()
 	s, err := store.New(tmp+"/state.json", tmp+"/gcroots", 1, 1)
 	assert.Nil(t, err)
-	d := deployer.New(s, deployFunc, nil, "", "")
+	d := deployer.New(&deployer.DeployerArgs{
+		Store:      s,
+		DeployFunc: deployFunc,
+	})
 	d.Run()
 	assert.False(t, d.IsSuspended())
 	d.Suspend()
@@ -104,12 +113,12 @@ func TestDeployerSuspend(t *testing.T) {
 
 	d.Submit(&protobuf.Generation{SelectedCommitId: "commit-1"})
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
-		assert.True(t, d.RunnerIsSuspended())
+		assert.True(c, d.RunnerIsSuspended())
 	}, 3*time.Second, 100*time.Millisecond)
 
 	d.Resume()
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
-		assert.False(t, d.RunnerIsSuspended())
-		assert.True(t, d.IsDeploying())
+		assert.False(c, d.RunnerIsSuspended())
+		assert.True(c, d.IsDeploying())
 	}, 3*time.Second, 100*time.Millisecond)
 }

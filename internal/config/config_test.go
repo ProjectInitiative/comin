@@ -13,6 +13,7 @@ func TestConfig(t *testing.T) {
 		Hostname:              "machine",
 		StateDir:              "/var/lib/comin",
 		StateFilepath:         "/var/lib/comin/state.json",
+		PreDeploymentCommand:  "/some/pre/path",
 		PostDeploymentCommand: "/some/path",
 		FlakeSubdirectory:     ".",
 		Remotes: []types.Remote{

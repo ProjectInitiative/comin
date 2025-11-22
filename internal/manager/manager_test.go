@@ -20,13 +20,8 @@ import (
 )
 
 var mkDeployerMock = func(t *testing.T) *deployer.Deployer {
-	var deployFunc = func(context.Context, string, string) (bool, string, error) {
-		return false, "", nil
-	}
-	tmp := t.TempDir()
-	s, err := store.New(tmp+"/state.json", tmp+"/gcroots", 1, 1)
-	assert.Nil(t, err)
-	return deployer.New(s, deployFunc, nil, "", "")
+	args := deployer.NewTestDeployerArgs(t)
+	return deployer.New(args)
 }
 
 type ExecutorMock struct {
@@ -87,7 +82,10 @@ func TestBuild(t *testing.T) {
 	var deployFunc = func(context.Context, string, string) (bool, string, error) {
 		return false, "profile-path", nil
 	}
-	d := deployer.New(s, deployFunc, nil, "", "")
+	args := deployer.NewTestDeployerArgs(t)
+	args.Store = s
+	args.DeployFunc = deployFunc
+	d := deployer.New(args)
 	e, _ := executor.NewNixExecutor("nixosConfigurations", "/nix/store")
 	m := New(s, prometheus.New(), scheduler.New(), f, b, d, "", e)
 	go m.Run()
@@ -194,7 +192,10 @@ func TestDeploy(t *testing.T) {
 	var deployFunc = func(context.Context, string, string) (bool, string, error) {
 		return false, "profile-path", nil
 	}
-	d := deployer.New(s, deployFunc, nil, "", "")
+	args := deployer.NewTestDeployerArgs(t)
+	args.Store = s
+	args.DeployFunc = deployFunc
+	d := deployer.New(args)
 	e, _ := executor.NewNixExecutor("nixosConfigurations", "/nix/store")
 	m := New(s, prometheus.New(), scheduler.New(), f, b, d, "", e)
 	go m.Run()
@@ -228,7 +229,7 @@ func TestIncorrectMachineId(t *testing.T) {
 	}
 
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
-		assert.False(t, m.GetState().Builder.IsBuilding.GetValue())
+		assert.False(c, m.GetState().Builder.IsBuilding.GetValue())
 	}, 5*time.Second, 100*time.Millisecond)
 }
 
@@ -253,7 +254,7 @@ func TestCorrectMachineId(t *testing.T) {
 	}
 
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
-		assert.True(t, m.GetState().Builder.IsBuilding.GetValue())
+		assert.True(c, m.GetState().Builder.IsBuilding.GetValue())
 	}, 5*time.Second, 100*time.Millisecond)
 }
 

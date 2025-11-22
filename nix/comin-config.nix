@@ -14,6 +14,9 @@ in rec {
     };
     gpg_public_key_paths = cfg.services.comin.gpgPublicKeyPaths;
   } // (
+    lib.optionalAttrs (cfg.services.comin.preDeploymentCommand != null)
+      { pre_deployment_command = cfg.services.comin.preDeploymentCommand; }
+  ) // (
     lib.optionalAttrs (cfg.services.comin.postDeploymentCommand != null)
       { post_deployment_command = cfg.services.comin.postDeploymentCommand; }
   ) // (

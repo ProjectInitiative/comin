@@ -91,7 +91,10 @@ You can specify a deployment to roll back to using one of the following flags:
 			return
 		}
 
-		deployer := deployer.New(store, executor.Deploy, nil, "", "")
+		deployer := deployer.New(&deployer.DeployerArgs{
+			Store:      store,
+			DeployFunc: executor.Deploy,
+		})
 		if err := deployer.Rollback(deploymentToRollback); err != nil {
 			logrus.Error(err)
 			os.Exit(1)

@@ -101,7 +101,14 @@ var runCmd = &cobra.Command{
 		sched.FetchRemotes(fetcher, cfg.Remotes)
 
 		builder := builder.New(store, executor, gitConfig.Path, gitConfig.Dir, cfg.Hostname, 30*time.Minute, 30*time.Minute)
-		deployer := deployer.New(store, executor.Deploy, lastDeployment, cfg.PostDeploymentCommand, cfg.LivelinessCheckCommand)
+		deployer := deployer.New(&deployer.DeployerArgs{
+			Store:                  store,
+			DeployFunc:             executor.Deploy,
+			PreviousDeployment:     lastDeployment,
+			PreDeploymentCommand:   cfg.PreDeploymentCommand,
+			PostDeploymentCommand:  cfg.PostDeploymentCommand,
+			LivelinessCheckCommand: cfg.LivelinessCheckCommand,
+		})
 
 		manager := manager.New(store, metrics, sched, fetcher, builder, deployer, machineId, executor)
 

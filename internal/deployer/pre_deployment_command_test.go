@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func TestPostDeploymentCommand(t *testing.T) {
+func TestPreDeploymentCommand(t *testing.T) {
 	startedAt := time.Now()
 	endedAt := startedAt.Add(10 * time.Second)
 	deployment := &protobuf.Deployment{
@@ -26,7 +26,7 @@ func TestPostDeploymentCommand(t *testing.T) {
 		Operation:    "",
 	}
 
-	out, err := runPostDeploymentCommand("env", deployment)
+	out, err := runPreDeploymentCommand("env", deployment)
 	assert.NoError(t, err)
 	assert.Contains(t, out, "COMIN_GIT_SHA=")
 }

@@ -6,12 +6,14 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/nlewo/comin/internal/protobuf"
 	"github.com/nlewo/comin/internal/store"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -29,6 +31,7 @@ type Deployer struct {
 	// The next generation to deploy. nil when there is no new generation to deploy
 	GenerationToDeploy     *protobuf.Generation
 	generationAvailableCh  chan struct{}
+	preDeploymentCommand   string
 	postDeploymentCommand  string
 	livelinessCheckCommand string
 
@@ -109,24 +112,46 @@ func Show(s *protobuf.Deployer, padding string) {
 	showDeployment(padding, s.Deployment)
 }
 
-func New(store *store.Store, deployFunc DeployFunc, previousDeployment *protobuf.Deployment, postDeploymentCommand string, livelinessCheckCommand string) *Deployer {
-	if previousDeployment != nil {
-		logrus.Infof("deployer: initializing with previous deployment %s", previousDeployment.Uuid)
+type DeployerArgs struct {
+	Store                  *store.Store
+	DeployFunc             DeployFunc
+	PreviousDeployment     *protobuf.Deployment
+	PreDeploymentCommand   string
+	PostDeploymentCommand  string
+	LivelinessCheckCommand string
+}
+
+func New(args *DeployerArgs) *Deployer {
+	if args.PreviousDeployment != nil {
+		logrus.Infof("deployer: initializing with previous deployment %s", args.PreviousDeployment.Uuid)
 	}
 	deployer := &Deployer{
-		store:                  store,
+		store:                  args.Store,
 		DeploymentDoneCh:       make(chan *protobuf.Deployment, 1),
-		deployerFunc:           deployFunc,
+		deployerFunc:           args.DeployFunc,
 		generationAvailableCh:  make(chan struct{}, 1),
-		postDeploymentCommand:  postDeploymentCommand,
-		livelinessCheckCommand: livelinessCheckCommand,
+		preDeploymentCommand:   args.PreDeploymentCommand,
+		postDeploymentCommand:  args.PostDeploymentCommand,
+		livelinessCheckCommand: args.LivelinessCheckCommand,
 
 		resumeCh: make(chan struct{}, 1),
 	}
-	deployer.previousDeployment.Store(previousDeployment)
-	deployer.deployment.Store(previousDeployment)
+	deployer.previousDeployment.Store(args.PreviousDeployment)
+	deployer.deployment.Store(args.PreviousDeployment)
 
 	return deployer
+}
+
+func NewTestDeployerArgs(t *testing.T) *DeployerArgs {
+	tmp := t.TempDir()
+	s, err := store.New(tmp+"/state.json", tmp+"/gcroots", 1, 1)
+	assert.Nil(t, err)
+	return &DeployerArgs{
+		Store: s,
+		DeployFunc: func(ctx context.Context, outPath, operation string) (bool, string, error) {
+			return false, "", nil
+		},
+	}
 }
 
 func (d *Deployer) Suspend() {
@@ -183,6 +208,15 @@ func (d *Deployer) Run() {
 			d.GenerationToDeploy = nil
 			d.mu.Unlock()
 			logrus.Infof("deployer: deploying generation %s", g.Uuid)
+
+			preCmd := d.preDeploymentCommand
+			if preCmd != "" {
+				// TODO: we should probably pass a real deployment here
+				_, err := runPreDeploymentCommand(preCmd, &protobuf.Deployment{Generation: g})
+				if err != nil {
+					logrus.Errorf("deployer: deploying generation %s, pre deployment command [%s] failed %v", g.Uuid, preCmd, err)
+				}
+			}
 
 			operation := "switch"
 			if g.SelectedBranchIsTesting.GetValue() {
@@ -243,11 +277,11 @@ func (d *Deployer) Run() {
 				continue
 			}
 
-			cmd := d.postDeploymentCommand
-			if cmd != "" {
-				_, err = runPostDeploymentCommand(cmd, deployment)
+			postCmd := d.postDeploymentCommand
+			if postCmd != "" {
+				_, err = runPostDeploymentCommand(postCmd, deployment)
 				if err != nil {
-					logrus.Errorf("deployer: deploying generation %s, post deployment command [%s] failed %v", g.Uuid, cmd, err)
+					logrus.Errorf("deployer: deploying generation %s, post deployment command [%s] failed %v", g.Uuid, postCmd, err)
 				}
 			}
 

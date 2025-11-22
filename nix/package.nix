@@ -24,7 +24,7 @@ in
 
 buildGoModule rec {
   pname = "comin";
-  version = "0.9.0";
+  version = "0.9.1";
   nativeCheckInputs = [ git ];
   src = lib.fileset.toSource {
     root = ../.;

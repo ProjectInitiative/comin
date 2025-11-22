@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func runPostDeploymentCommand(command string, d *pb.Deployment) (string, error) {
+func runPreDeploymentCommand(command string, d *pb.Deployment) (string, error) {
 	args, err := shellwords.Parse(command)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse command %q: %w", command, err)

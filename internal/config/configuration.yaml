@@ -1,5 +1,6 @@
 hostname: machine
 state_dir: /var/lib/comin
+pre_deployment_command: "/some/pre/path"
 post_deployment_command: "/some/path"
 remotes:
   - name: origin

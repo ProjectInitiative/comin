@@ -59,6 +59,7 @@ type Configuration struct {
 	Grpc                  Grpc       `yaml:"grpc"`
 	Exporter              HttpServer `yaml:"exporter"`
 	GpgPublicKeyPaths     []string   `yaml:"gpg_public_key_paths"`
+	PreDeploymentCommand  string     `yaml:"pre_deployment_command"`
 	PostDeploymentCommand  string     `yaml:"post_deployment_command"`
 	LivelinessCheckCommand string     `yaml:"liveliness_check_command"`
 }
